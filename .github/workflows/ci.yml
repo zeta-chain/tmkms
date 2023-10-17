@@ -236,3 +236,37 @@ jobs:
         with:
           command: clippy
           args: --all-features
+
+release:
+    needs: build # Ensure this runs only after the build job succeeds
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/tmkms-release'
+    steps:
+    - name: Checkout sources
+      uses: actions/checkout@v1
+      
+    - name: Set up GitHub CLI
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y gh
+      
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.sha }}
+        release_name: Release ${{ github.sha }}
+        draft: false
+        prerelease: false
+        
+    - name: Upload Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./path/to/your/binary # Replace with the path to your built binary
+        asset_name: binary-name # Replace with the name you want for your binary
+        asset_content_type: application/octet-stream
